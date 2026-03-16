@@ -1,7 +1,27 @@
 let testData = null;
 let userAnswers = { mcq: {}, tf: {}, short: {} };
 let shortSelfGrades = {};
-const backendUrl = "https://classical-zoloft-budgets-identity.trycloudflare.com/";
+const DEFAULT_BACKEND_URL = "https://registration-depot-doc-jpeg.trycloudflare.com/";
+const BACKEND_URL_STORAGE_KEY = "question_gui_backend_url";
+
+function normalizeBackendUrl(url) {
+  const trimmed = (url || '').trim();
+  if (!trimmed) return DEFAULT_BACKEND_URL;
+
+  let normalized = trimmed;
+  if (!/^https?:\/\//i.test(normalized)) {
+    normalized = `https://${normalized}`;
+  }
+
+  return normalized.endsWith('/') ? normalized : `${normalized}/`;
+}
+
+function getBackendUrl() {
+  const stored = localStorage.getItem(BACKEND_URL_STORAGE_KEY);
+  const normalized = normalizeBackendUrl(stored || DEFAULT_BACKEND_URL);
+  localStorage.setItem(BACKEND_URL_STORAGE_KEY, normalized);
+  return normalized;
+}
 
 function showScreen(screenId) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
@@ -24,6 +44,7 @@ async function loadByCode(code) {
   showLoadError('');
 
   try {
+    const backendUrl = getBackendUrl();
     const response = await fetch(`${backendUrl}api/get-test/${normalized}`);
     if (!response.ok) {
       throw new Error('Test not found on server. Check your access code.');

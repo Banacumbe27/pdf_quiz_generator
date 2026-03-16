@@ -44,6 +44,53 @@ input[type="file"], input[type="number"], input[type="text"], select {
     border-radius: 4px;
     box-sizing: border-box;
 }
+
+input[type="url"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.inline-input-action {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.inline-input-action input {
+    flex: 1;
+}
+
+.inline-input-action .secondary-btn {
+    width: auto;
+    min-width: 90px;
+    padding: 10px 14px;
+    background-color: #6c757d;
+}
+
+.inline-input-action .secondary-btn:hover {
+    background-color: #5a6268;
+}
+
+.helper-text {
+    display: block;
+    margin-top: 6px;
+    color: #6c757d;
+    font-size: 13px;
+}
+
+@media (max-width: 640px) {
+    .inline-input-action {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .inline-input-action .secondary-btn {
+        width: 100%;
+    }
+}
 button {
     width: 100%;
     padding: 12px;

@@ -1,7 +1,68 @@
 // --- Handle the Generation Form ---
-const backendUrl = "https://classical-zoloft-budgets-identity.trycloudflare.com/";
+const DEFAULT_BACKEND_URL = "https://registration-depot-doc-jpeg.trycloudflare.com/";
+const BACKEND_URL_STORAGE_KEY = "question_gui_backend_url";
+
+function normalizeBackendUrl(url) {
+    const trimmed = (url || "").trim();
+    if (!trimmed) return DEFAULT_BACKEND_URL;
+
+    let normalized = trimmed;
+    if (!/^https?:\/\//i.test(normalized)) {
+        normalized = `https://${normalized}`;
+    }
+
+    return normalized.endsWith("/") ? normalized : `${normalized}/`;
+}
+
+function getBackendUrl() {
+    const input = document.getElementById('backend-url-input');
+    const raw = input ? input.value : localStorage.getItem(BACKEND_URL_STORAGE_KEY);
+    const normalized = normalizeBackendUrl(raw);
+    localStorage.setItem(BACKEND_URL_STORAGE_KEY, normalized);
+    if (input && input.value !== normalized) {
+        input.value = normalized;
+    }
+    return normalized;
+}
+
+function initializeBackendUrlControls() {
+    const backendInput = document.getElementById('backend-url-input');
+    const resetBtn = document.getElementById('reset-backend-url-btn');
+    if (!backendInput) return;
+
+    const storedUrl = localStorage.getItem(BACKEND_URL_STORAGE_KEY);
+    const initialUrl = normalizeBackendUrl(storedUrl || DEFAULT_BACKEND_URL);
+    backendInput.value = initialUrl;
+    localStorage.setItem(BACKEND_URL_STORAGE_KEY, initialUrl);
+
+    const persist = () => {
+        const normalized = normalizeBackendUrl(backendInput.value);
+        backendInput.value = normalized;
+        localStorage.setItem(BACKEND_URL_STORAGE_KEY, normalized);
+    };
+
+    backendInput.addEventListener('blur', persist);
+    backendInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            persist();
+        }
+    });
+
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            backendInput.value = DEFAULT_BACKEND_URL;
+            localStorage.setItem(BACKEND_URL_STORAGE_KEY, DEFAULT_BACKEND_URL);
+        });
+    }
+}
+
+initializeBackendUrlControls();
+
 document.getElementById('generate-form').addEventListener('submit', async (e) => {
     e.preventDefault(); // Stop the page from reloading
+
+    const backendUrl = getBackendUrl();
 
     const form = e.target;
     const submitBtn = document.getElementById('generate-btn');
@@ -38,9 +99,33 @@ document.getElementById('generate-form').addEventListener('submit', async (e) =>
 
         const data = await response.json();
 
+        let finalData = data;
+        if (response.ok && data.status === "duplicate_found") {
+            const message = [
+                "This PDF was already processed.",
+                "Press OK to reuse the previous generated test instantly.",
+                "Press Cancel to regenerate only the test from cached claims."
+            ].join("\n");
+            const reuse = window.confirm(message);
+
+            const resolveFormData = new FormData();
+            resolveFormData.append('duplicate_token', data.duplicate_token);
+            resolveFormData.append('action', reuse ? 'reuse' : 'regenerate');
+
+            const resolveResponse = await fetch(`${backendUrl}api/resolve-duplicate`, {
+                method: 'POST',
+                body: resolveFormData
+            });
+            finalData = await resolveResponse.json();
+
+            if (!resolveResponse.ok || finalData.status !== "success") {
+                throw new Error(finalData.message || 'Failed to resolve duplicate upload.');
+            }
+        }
+
         // 2. Check if the backend gave us the thumbs up that the job STARTED
-        if (response.ok && data.status === "success") {
-            const accessCode = data.access_code;
+        if (response.ok && finalData.status === "success") {
+            const accessCode = finalData.access_code;
             
             // 3. Start polling the server for logs every 1 second (1000ms)
             const pollInterval = setInterval(async () => {
@@ -92,7 +177,7 @@ document.getElementById('generate-form').addEventListener('submit', async (e) =>
 
         } else {
             // If the server rejected the initial POST request
-            throw new Error(data.message || 'The pipeline failed to start.');
+            throw new Error(finalData.message || 'The pipeline failed to start.');
             loadingIndicator.classList.add('hidden');
             submitBtn.disabled = false;
         }
@@ -109,6 +194,7 @@ document.getElementById('generate-form').addEventListener('submit', async (e) =>
 document.getElementById('retrieve-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const accessCode = document.getElementById('access-code-input').value.trim();
+    const backendUrl = getBackendUrl();
     
     if (accessCode) {
         // Opening the URL in a new tab will show or download the JSON file
@@ -125,6 +211,7 @@ document.getElementById('retrieve-take-test-btn').addEventListener('click', () =
 
 document.getElementById('retrieve-view-log-btn').addEventListener('click', () => {
     const accessCode = document.getElementById('access-code-input').value.trim();
+    const backendUrl = getBackendUrl();
     if (accessCode) {
         window.open(`${backendUrl}api/get-log/${accessCode}`, '_blank');
     }
