@@ -45,7 +45,15 @@ document.getElementById('generate-form').addEventListener('submit', async (e) =>
             // 3. Start polling the server for logs every 1 second (1000ms)
             const pollInterval = setInterval(async () => {
                 try {
-                    const logResponse = await fetch(`${backendUrl}api/progress/${accessCode}`);
+                    const logUrl = `${backendUrl}api/progress/${accessCode}?_=${Date.now()}`;
+                    const logResponse = await fetch(logUrl, {
+                        cache: 'no-store',
+                        headers: {
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            'Pragma': 'no-cache',
+                            'Expires': '0'
+                        }
+                    });
                     const logData = await logResponse.json();
                     
                     if (terminal) {
@@ -68,7 +76,7 @@ document.getElementById('generate-form').addEventListener('submit', async (e) =>
 
                             // Wire action buttons for this specific run code.
                             document.getElementById('download-btn').onclick = () => {
-                                window.open(`http://localhost:8000/api/get-test/${accessCode}`, '_blank');
+                                window.open(`${backendUrl}api/get-test/${accessCode}`, '_blank');
                             };
 
                             document.getElementById('take-test-btn').onclick = () => {
@@ -104,7 +112,7 @@ document.getElementById('retrieve-form').addEventListener('submit', (e) => {
     
     if (accessCode) {
         // Opening the URL in a new tab will show or download the JSON file
-        window.open(`http://localhost:8000/api/get-test/${accessCode}`, '_blank');
+        window.open(`${backendUrl}api/get-test/${accessCode}`, '_blank');
     }
 });
 
@@ -118,6 +126,6 @@ document.getElementById('retrieve-take-test-btn').addEventListener('click', () =
 document.getElementById('retrieve-view-log-btn').addEventListener('click', () => {
     const accessCode = document.getElementById('access-code-input').value.trim();
     if (accessCode) {
-        window.open(`http://localhost:8000/api/get-log/${accessCode}`, '_blank');
+        window.open(`${backendUrl}api/get-log/${accessCode}`, '_blank');
     }
 });
