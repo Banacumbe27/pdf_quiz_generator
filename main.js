@@ -1,6 +1,10 @@
 // --- Handle the Generation Form ---
-const DEFAULT_BACKEND_URL = "https://registration-depot-doc-jpeg.trycloudflare.com/";
+const DEFAULT_BACKEND_URL = "https://unattractive-fallalishly-josefine.ngrok-free.dev/";
 const BACKEND_URL_STORAGE_KEY = "question_gui_backend_url";
+const LEGACY_BACKEND_URLS = new Set([
+    "https://registration-depot-doc-jpeg.trycloudflare.com/",
+    "https://classical-zoloft-budgets-identity.trycloudflare.com/"
+]);
 
 function normalizeBackendUrl(url) {
     const trimmed = (url || "").trim();
@@ -11,7 +15,8 @@ function normalizeBackendUrl(url) {
         normalized = `https://${normalized}`;
     }
 
-    return normalized.endsWith("/") ? normalized : `${normalized}/`;
+    normalized = normalized.endsWith("/") ? normalized : `${normalized}/`;
+    return LEGACY_BACKEND_URLS.has(normalized) ? DEFAULT_BACKEND_URL : normalized;
 }
 
 function getBackendUrl() {
